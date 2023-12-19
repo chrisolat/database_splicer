@@ -1,7 +1,6 @@
 """
 This module is used to generate sql to insert extracted 
 data back into the database
-1,026,534
 """
 # add table essential columns to stack, then query table id from stack
 # issue -> 'None' values in json should be converted to NULL
@@ -9,9 +8,9 @@ import sys
 
 sys.path.append("../modules")
 # sys.stdout.reconfigure(encoding='utf8')
-from coursesmodules import get_columns
-from coursesmodules import connect_to_db
-from coursesmodules import schema as schema_module
+from modules import get_columns
+from modules import connect_to_db
+from modules import schema as schema_module
 import json
 import argparse
 import ast

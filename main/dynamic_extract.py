@@ -7,9 +7,9 @@ from a view/table or sql query passed in from create_view.py
 import sys
 
 sys.path.append("../modules")
-from coursesmodules import get_columns
-from coursesmodules import connect_to_db
-from coursesmodules import schema as schema_module
+from modules import get_columns
+from modules import connect_to_db
+from modules import schema as schema_module
 import json
 import argparse
 import ast

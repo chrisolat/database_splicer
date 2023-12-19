@@ -4,9 +4,9 @@ generate sql queries that can be used to extract data from tables
 """
 
 import sys
-from coursesmodules import get_columns
-from coursesmodules import connect_to_db
-from coursesmodules import schema as schema_module
+from modules import get_columns
+from modules import connect_to_db
+from modules import schema as schema_module
 import json
 import argparse
 
