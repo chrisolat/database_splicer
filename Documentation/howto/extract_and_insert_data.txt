@@ -1,0 +1,64 @@
+
+Please ensure that the `psycopg2` python library is intalled before running any scripts.
+To install psycopg2, run `pip install psycopg2` on the command line, or follow instructions here: https://www.psycopg.org/docs/install.html
+
+Also remember to set the database credentials in your environment variables. To do this, go to folder `modules`. If you are using a linux or mac operating system, run `db_info_sample.sh`. If you are using a windows operating system, run `db_info_sample.cmd`.
+
+For unix systems:
+```sh
+$ source modules/db_info_sample.sh
+```
+For windows:
+```sh
+modules/db_info_sample.cmd
+```
+
+## Generate schema data json
+To generate a fully detailed schema json file, run the following command. `generate_schema.py` can be found in folder `modules`
+
+```sh
+python3 generate_schema.py --generate_all --schemas <specify schemas> --outfile <output file name>
+```
+
+This generates a file containing the database schemas and their tables
+
+> This generates a json file outlining the relationships between the tables
+> You may need to make modifications to this file. The constraints assigned to the tables may be incorrect.
+
+
+### Generate sql for tables
+Generate sql using `generate_sql.py`. This script can be found in folder `courses2`
+
+The schema json generated above is used by this script.
+
+This is how to run the script:
+```sh
+python3 generate_sql.py  --tables <specify table(s)> --schemajson <generated schema json> --outfile <output file>
+```
+
+
+## Extract data
+`dynamic_extract.py` is used to read and execute the generated sql query and extract the data.
+
+This is how to run the script:
+```sh
+python3 dynamic_extract.py --schemajson <generated schema json> --queryfile <generated sql query> --outfile <output file>
+```
+
+
+## Insert data
+  `dynamic_insert.py` is used to insert data into the database
+
+To use this script, you can either run it with the --generate_sql flag or the --auto_insert flag.
+For more info, read `dynamic_insert.txt` in folder `Documentation`.
+### Generate sql
+```sh
+python3 dynamic_insert.py --datafile datafile.json --outfile output.sql --schemajson file3.json --generate_sql
+```
+
+### Auto Insert
+```sh
+python3 dynamic_insert.py --datafile datafile.json --schemajson file3.json --auto_insert
+```
+
+

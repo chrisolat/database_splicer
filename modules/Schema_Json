@@ -1,0 +1,305 @@
+{
+  "portal_table_order": ["courses","paths","lessons",
+  "activities","sections","forms","students",
+  "questions","submissions",
+  "answers","uploaded_file"],
+  "contacts_table_order": ["people", "organizations", "affiliations"],
+  "id_to_foreign_key":{
+    "courses_course_name": ["course_name"],
+    "paths_prefix": ["prefix"],
+    "lessons_id": ["prefix","relative_path"],
+    "activity_id": ["lesson_id","form_code"],
+    "form_id": ["activity_id","form_hash"],
+    "question_id": ["question_id","question_order"],
+    "sections_section_code": ["section_code"],
+    
+    "submission_id": ["question_id","student_id"]
+  },
+  "trees":{
+    "tree0":{
+      "schema": "contacts",
+      "tables": ["people"],
+      "prev-tree": "",
+      "next-tree": "tree1"
+    },
+    "tree1":{
+      "schema": "contacts",
+      "tables": ["organizations","affiliations"],
+      "prev-tree": "tree0",
+      "next-tree": "tree2"
+    },
+    "tree2": {
+      "schema": "portal",
+      "tables": ["courses","paths","lessons","activities","forms","questions"],
+      "prev-tree": "tree1",
+      "next-tree": "tree3"
+    },
+    "tree3": {
+      "schema": "portal",
+      "tables": ["sections","students","submissions","answers","uploaded_file"],
+      "prev-tree": "tree2",
+      "next-tree": ""
+    }
+  },
+  "organization_types":{
+    "PRIMARY-KEY":["code"],
+    "FOREIGN-KEY":{},
+    "UNIQUE-KEY":[],
+    "NOT-NEEDED":[],
+    "PARENT-TABLE": [],
+    "FRIEND-TABLE": {},
+    "IDENTIFIER": ["organization_types.code"],
+    "CHILD-TABLE": []
+    },
+    "organizations": {
+        "PRIMARY-KEY":["id"],
+        "FOREIGN-KEY":{
+            "organization_types": "type"
+        },
+        "UNIQUE-KEY":[],
+        "NOT-NEEDED":["id","organizations_id","organizations_parent"],
+        "PARENT-TABLE": ["organizations"],
+        "FRIEND-TABLE": {},
+        "IDENTIFIER": ["organizations.name"],
+        "CHILD-TABLE": ["affiliations"]
+    },
+    "people": {
+        "PRIMARY-KEY": ["id"],
+        "FOREIGN-KEY": {},
+        "UNIQUE-KEY": [],
+        "NOT-NEEDED": ["id", "people_id"],
+        "PARENT-TABLE": [],
+        "FRIEND_TABLE": {},
+        "IDENTIFIER": ["people.first_name","people.last_name","people.disamb"],
+        "CHILD-TABLE": []
+    },
+    "affiliations": {
+        "PRIMARY-KEY":["id"],
+        "FOREIGN-KEY":{
+            "organizations": "id"
+        },
+        "UNIQUE-KEY":[],
+        "NOT-NEEDED":["id","affiliations_id","affiliations_organization","affiliations_person"],
+        "PARENT-TABLE": ["organizations"],
+        "FRIEND_TABLE": {},
+        "IDENTIFIER": ["organizations.name","people.first_name","people.last_name","people.disamb"],
+        "CHILD-TABLE": []
+    },
+  "courses": {
+    "PRIMARY-KEY":["course_name"],
+    "FOREIGN-KEY":{},
+    "UNIQUE-KEY":[],
+    "NOT-NEEDED":[],
+    "PARENT-TABLE": [],
+    "FRIEND-TABLE": {},
+    "IDENTIFIER": ["courses.course_name"],
+    "CHILD-TABLE": ["paths"]
+  },
+  "paths": {
+    "PRIMARY-KEY":["prefix"],
+    "FOREIGN-KEY":{
+        "courses": "course_name"
+    },
+    "UNIQUE-KEY":[],
+    "NOT-NEEDED":[],
+    "PARENT-TABLE": ["courses"],
+    "FRIEND-TABLE": {},
+    "IDENTIFIER": ["paths.prefix"],
+    "CHILD-TABLE": ["lessons"]
+  },
+  "lessons": {
+    "PRIMARY-KEY":["id"],
+    "FOREIGN-KEY":{
+        "paths": "prefix"
+    },
+    "UNIQUE-KEY":["relative_path"],
+    "NOT-NEEDED":["id","lesson_id","lessons_id"],
+    "PARENT-TABLE": ["paths"],
+    "FRIEND-TABLE": {},
+    "IDENTIFIER": ["paths.prefix","lessons.relative_path"],
+    "CHILD-TABLE": ["activities"]
+  },
+  "activities": {
+    "PRIMARY-KEY":["id"],
+    "FOREIGN-KEY":{
+        "lessons": "lesson_id"
+    },
+    "UNIQUE-KEY":["form_code"],
+    "NOT-NEEDED":["id","lesson_id","activity_id","activity_lesson_id","activities_id","activities_lesson_id"],
+    "PARENT-TABLE": ["lessons"],
+    "FRIEND-TABLE": {},
+    "IDENTIFIER": ["paths.prefix","lessons.relative_path","activities.form_code"],
+    "CHILD-TABLE": ["forms"]
+  },
+  "sections": {
+    "PRIMARY-KEY":["section_code"],
+    "FOREIGN-KEY":{
+        "courses": "course_name"
+    },
+    "UNIQUE-KEY":[],
+    "NOT-NEEDED":[],
+    "PARENT-TABLE": ["courses"],
+    "FRIEND-TABLE": {},
+    "IDENTIFIER": ["sections.section_code"],
+    "CHILD-TABLE": ["students"]
+  },
+  "forms": {
+    "PRIMARY-KEY":["id"],
+    "FOREIGN-KEY":{
+        "activities": "activity_id"
+    },
+    "UNIQUE-KEY":["form_hash"],
+    "NOT-NEEDED":["id","activity_id","form_id","form_activity_id","forms_id","forms_activity_id"],
+    "PARENT-TABLE": ["activities"],
+    "FRIEND-TABLE": {},
+    "IDENTIFIER": ["paths.prefix","lessons.relative_path","activities.form_code","forms.form_hash"],
+    "CHILD-TABLE": ["questions"]
+  },
+  "questions": {
+    "PRIMARY-KEY":["id"],
+    "FOREIGN-KEY":{
+        "forms": "form_id"
+    },
+    "UNIQUE-KEY":["question_code"],
+    "NOT-NEEDED":["id","form_id","question_id","question_form_id","questions_id","questions_form_id"],
+    "PARENT-TABLE": ["forms"],
+    "FRIEND-TABLE": {},
+    "IDENTIFIER": ["paths.prefix","lessons.relative_path","activities.form_code","forms.form_hash","questions.question_order"],
+    "CHILD-TABLE": ["answers"]
+  },
+  "students": {
+    "PRIMARY-KEY":["id"],
+    "FOREIGN-KEY":{
+        "sections": "section_code"
+    },
+    "UNIQUE-KEY":["student_code"],
+    "NOT-NEEDED":["id","student_id"],
+    "PARENT-TABLE": ["sections"],
+    "FRIEND-TABLE": {},
+    "IDENTIFIER": ["sections.section_code","students.student_code"],
+    "CHILD-TABLE": ["submissions"]
+  },
+  "submissions": {
+    "PRIMARY-KEY":["id"],
+    "FOREIGN-KEY":{
+        "students": "student_id",
+        "forms": "form_id"
+    },
+    "UNIQUE-KEY":[],
+    "NOT-NEEDED":["id","student_id","form_id","submission_id","submissions_id"],
+    "PARENT-TABLE": ["students"],
+    "FRIEND-TABLE": {
+        "forms": "form_id"
+    },
+    "IDENTIFIER": ["paths.prefix","lessons.relative_path","activities.form_code","forms.form_hash","sections.section_code","students.student_code","submissions.answered_at"],
+    "CHILD-TABLE": ["answers"]
+  },
+  "answers": {
+    "PRIMARY-KEY":["id"],
+    "FOREIGN-KEY":{
+        "questions": "question_id",
+        "submissions": "submission_id"
+    },
+    "UNIQUE-KEY":[],
+    "NOT-NEEDED":["id","question_id","submission_id","answer_id","answer_submission_id","answers_id","answers_submission_id","answers_question_id"],
+    "PARENT-TABLE": ["submissions"],
+    "FRIEND-TABLE": {},
+    "IDENTIFIER": ["paths.prefix","lessons.relative_path","activities.form_code","forms.form_hash","sections.section_code","students.student_code","submissions.answered_at","questions.question_order"],
+    "CHILD-TABLE": ["uploaded_file"]
+  },
+  "uploaded_file": {
+    "PRIMARY-KEY":["id"],
+    "FOREIGN-KEY":{
+        "answers": "answer_id"
+    },
+    "UNIQUE-KEY":[],
+    "NOT-NEEDED":["id","answer_id","uploaded_file_id","uploaded_file_answer_id","uploaded_files_id","uploaded_files_answer_id"],
+    "PARENT-TABLE": ["answers"],
+    "FRIEND-TABLE": {},
+    "IDENTIFIER": [],
+    "CHILD-TABLE": []
+  },
+  "section_activity": {
+    "PRIMARY-KEY":["id","activity_id","activities_id"],
+    "FOREIGN-KEY":{
+        "sections": "section_code",
+        "activities": "activity_id"
+    },
+    "UNIQUE-KEY":[],
+    "NOT-NEEDED":[],
+    "PARENT-TABLE": {},
+    "FRIEND-TABLE": {},
+    "IDENTIFIER": [],
+    "CHILD-TABLE": []
+  },
+  "roles": {
+    "PRIMARY-KEY":[],
+    "FOREIGN-KEY":{},
+    "UNIQUE-KEY":[],
+    "NOT-NEEDED":[],
+    "PARENT-TABLE": {},
+    "FRIEND-TABLE": {},
+    "IDENTIFIER": [],
+    "CHILD-TABLE": []
+  },
+  "users": {
+    "PRIMARY-KEY":[],
+    "FOREIGN-KEY":{},
+    "UNIQUE-KEY":[],
+    "NOT-NEEDED":[],
+    "PARENT-TABLE": {},
+    "FRIEND-TABLE": {},
+    "IDENTIFIER": [],
+    "CHILD-TABLE": []
+  },
+  "user_section": {
+    "PRIMARY-KEY":[],
+    "FOREIGN-KEY":{},
+    "UNIQUE-KEY":[],
+    "NOT-NEEDED":[],
+    "PARENT-TABLE": {},
+    "FRIEND-TABLE": {},
+    "IDENTIFIER": [],
+    "CHILD-TABLE": []
+  },
+  "user_course": {
+    "PRIMARY-KEY":[],
+    "FOREIGN-KEY":{},
+    "UNIQUE-KEY":[],
+    "NOT-NEEDED":[],
+    "PARENT-TABLE": {},
+    "FRIEND-TABLE": {},
+    "IDENTIFIER": [],
+    "CHILD-TABLE": []
+  },
+  "user_role": {
+    "PRIMARY-KEY":[],
+    "FOREIGN-KEY":{},
+    "UNIQUE-KEY":[],
+    "NOT-NEEDED":[],
+    "PARENT-TABLE": {},
+    "FRIEND-TABLE": {},
+    "IDENTIFIER": [],
+    "CHILD-TABLE": []
+  },
+  "student_activity": {
+    "PRIMARY-KEY":[],
+    "FOREIGN-KEY":{},
+    "UNIQUE-KEY":[],
+    "NOT-NEEDED":[],
+    "PARENT-TABLE": {},
+    "FRIEND-TABLE": {},
+    "IDENTIFIER": [],
+    "CHILD-TABLE": []
+  },
+  "section_question": {
+    "PRIMARY-KEY":[],
+    "FOREIGN-KEY":{},
+    "UNIQUE-KEY":[],
+    "NOT-NEEDED":[],
+    "PARENT-TABLE": {},
+    "FRIEND-TABLE": {},
+    "IDENTIFIER": [],
+    "CHILD-TABLE": []
+  }
+}

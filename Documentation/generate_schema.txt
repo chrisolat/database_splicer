@@ -1,0 +1,67 @@
+Documentation for: generate_schema.py
+===============================================
+
+DESCRIPTION
+=============
+Reads the database and generates a json file outlining the relationship between tables 
+in a schema. 
+
+A user must provide the name of the schema this operation will be performed on.
+
+This script generates 3 files. The first file contains a "skeletal structure" of
+the relationship between tables in a schema. The second file contains a more detailed 
+structure of the tables in the schema and the third file contains more details as well.
+
+Essentially, each step generates a json file with more information than the previous file. 
+
+OPTIONS
+========
+--outfile <file name>:
+        Specify the name of the file the data should be written to.
+
+--infile <file name>
+        Specify the name of the file data should be read from.
+
+--schemas <names of schemas>:
+        The names of the schemas to extract data from.
+        This can be multiple "space seperated names". If multiple names are given,
+        the generated json will contain an aggregate of all tables in all specified
+        schemas.
+
+        If no schema names are specified, data will be extracted from all schemas.
+
+--generate_all:
+        This executes all 3 files; generating the first, second and third json files
+        in one command. The name of the final/third json file can be specified, but
+        the names of preceding files are hardcoded and assigned by the script.
+
+--generate_schema_tables:
+        This generates the first json file. This file contains skeletal data outlining
+        the relationship between tables in a schema.
+
+--generate_schema:
+        This generates the second json file. This file contains a more detailed
+        structure than the first file. The name of the first file must be passed in
+        as input when this option is selected.
+
+--generate_detailed_schema:
+        This generates the third json file. This file contains a more detailed
+        structure than the second file. The name of the second file must be passed in
+        as input when this option is selected.
+
+EXAMPLES
+=========
+
+# Using --generate_all
+---------------------------------------------------------------------------------------------
+$ python3 generate_schema.py --schemas portal --outfile output.json --generate_all
+---------------------------------------------------------------------------------------------
+
+# Manually generating all 3 files
+---------------------------------------------------------------------------------------------
+$ python3 generate_schema.py --schemas portal --outfile file1.json --generate_schema_tables
+$ python3 generate_schema.py --schemas portal --infile file1.json --outfile file2.json --generate_schema
+$ python3 generate_schema.py --schemas portal --infile file2.json --outfile file3.json --generate_detailed_schema
+---------------------------------------------------------------------------------------------
+
+

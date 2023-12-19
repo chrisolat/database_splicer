@@ -1,0 +1,8 @@
+On Unix systems simply run:
+    $ sh modules/db_info_sample.sh
+
+On windows systems simply run:
+    $ modules/db_info_sample.cmd
+
+
+    

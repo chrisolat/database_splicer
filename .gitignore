@@ -1,0 +1,5 @@
+*.sql
+*.json
+db_info_sample.cmd
+__pycache__
+*.pptx
