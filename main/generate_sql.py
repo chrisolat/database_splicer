@@ -42,13 +42,6 @@ def generate_sql(args):
     seen_tables = set()
     result_query = []
 
-    # add table friend to table input
-    # if table_input:
-    #     for table in table_input:
-    #         table_friend = json_data[table]["FRIEND-TABLE"]
-    #         if len(table_friend) > 0 and table_friend[0] not in table_input:
-    #             table_input.append(table_friend)
-    
     if table_input:
         table_input = add_friend_table(table_input, json_data)
     use_column_list = False
@@ -74,7 +67,6 @@ def generate_sql(args):
                 query = build_query(Trees[tree],tree_schema,json_data)
                 if query:
                     result_query.append(query)
-    # result_query = list(set(result_query))
     if table_input and not result_query:
         print("Tables entered are not in same schema")
         return
@@ -85,7 +77,6 @@ def generate_sql(args):
             print(statement.strip())
         
     with open(args.outfile.name, 'w') as file:
-        # print(result_query)
         print(len(result_query), "query(s)")
         if args.columns and not use_column_list:
             print("Warning: specified columns were not found in any tables!")
@@ -213,9 +204,9 @@ def build_query(table_list,DB_SCHEMA,json_data,column_and_data_list,use_columns_
     for table in table_json.keys(): # Iterate through tables
         for cols in table_json[table]: # Iterate through columns of table in dictionary
             # this is to make column names unique 
-            # i.e. table -> courses, column -> course_name
-            # identifier -> courses.course_name
-            # unique name -> courses_course_name
+            # i.e. table -> table_name, column -> table_column
+            # identifier -> table_name.table_column
+            # unique name -> table_name_table_column
             table_name = table.split(".")[1] + "." + cols
             new_table_name = table.split(".")[1] + "_" + cols
             sql_query += "\n {} AS {},".format(table_name,new_table_name)
@@ -226,7 +217,6 @@ def build_query(table_list,DB_SCHEMA,json_data,column_and_data_list,use_columns_
                 view_pkeys.append(new_table_name)
     
     #  Sql query end
-    #sql_query = sql_query[:-2]
     query_len = len(sql_query)-1
     while(sql_query[query_len] == " "):
         query_len -= 1
@@ -235,7 +225,7 @@ def build_query(table_list,DB_SCHEMA,json_data,column_and_data_list,use_columns_
     sql_query += "\n from {};".format(table_list[0])
     
     # if more than one table is passed in
-    if len(table_list) > 1 and table_list[1] != "organizations": # TODO - remove hardcoding
+    if len(table_list) > 1:
         sql_query = sql_query[:-1]
         # Iterate through the rest of the tables
         for table in range(1,len(table_list)):

@@ -3,7 +3,7 @@
 This module is used to read data 
 from a view/table or sql query passed in from create_view.py
 """
-# add function to handle extraction of tables with no primary/unique keys
+# add functionality to handle extraction of tables with no primary/unique keys
 import sys
 
 sys.path.append("../modules")
@@ -25,8 +25,8 @@ PAYLOAD_CACHE = {}
 def extract_view_new_algorithm_with_seq_write(args):
     try:
         con = connect_to_db.connect()
-        # cur = con.cursor() # normal way to initialize cursor
-        cur = con.cursor("my_cursor") # not sure if or why this works. needed to extract data in chuncks. example seen on stackoverflow
+        # cur = con.cursor() # correct way to initialize cursor
+        cur = con.cursor("my_cursor")
         cur.itersize = 20000
     except:
         print("could not connect to database. please ensure the credentials are correct")
@@ -148,7 +148,7 @@ def extract_view_new_algorithm_with_seq_write(args):
                 
                 if not cur_pkeys:
                     break
-                # get next chunck
+                # get next chunck (20000 records)
                 view_chunck = cur.fetchmany(cur.itersize)
             
             # If anything is left in output after traversal,
@@ -161,7 +161,7 @@ def extract_view_new_algorithm_with_seq_write(args):
             file.writelines("\n]\n")
 
             init_query+=1
-            cur = con.cursor() # not sure if or why this works. needed to extract data in chuncks. example seen on stackoverflow
+            cur = con.cursor() 
             cur.itersize = 20000
         file.writelines("]\n")
         
@@ -176,7 +176,6 @@ def extract_view_new_algorithm_with_seq_write(args):
 
 
 # recursive function to convert view_row into heirarchical json
-# *Quite a complex algorithm. Look in file test_algorithm.py for a simple example
 def get_row_json(view_row,table_list,view_column_list,json_data):
     separated_table_json = separate_table_into_json(view_row,table_list,view_column_list,json_data)
     def singleton(table_list,separated_table_json):
@@ -195,7 +194,6 @@ def get_row_json(view_row,table_list,view_column_list,json_data):
             friend_tree_payloads = get_friend_payloads(json_data, table_list[0], separated_table_json[table_list[0]])
             
             
-            # print(IDENTIFIER_CACHE)
             if len(table_list) > 1:
                 rest_data = singleton(rest(table_list, 0),separated_table_json)
                 return {
@@ -242,8 +240,6 @@ def get_essential_columns(json_data,abs_table_name):
 
 def get_friend_essential_columns_old(view_row,view_column_list,json_data,abs_table_name,json_data_with_constraints):
     
-    zipped_columns = dict(zip(view_column_list,view_row))
-    # print(zipped_columns)
     friend_essential_columns = {}
     if len(json_data[abs_table_name]["FRIEND-TABLE"])>0:
         for friend_abs_name in json_data[abs_table_name]["FRIEND-TABLE"]:
@@ -310,25 +306,6 @@ def get_friend_parent_payloads(json_data, abs_friend_table_name, table_payload):
     payload_data = PAYLOAD_CACHE[abs_friend_table_name][friend_id]
     return payload_data
 
-# get list of parent when tree is a cycle
-def get_recursive_parents(essential_columns,zipped_columns):
-    con = connect_to_db.connect()
-    cur = con.cursor()
-    parent_list = [zipped_columns['organizations_name']]
-    for column in zipped_columns:
-        # TODO - removed hardcoding (contacts.organizations is always a pain)
-        if column == "organizations_parent":
-            org_parent_Id = zipped_columns[column]
-            
-            while(org_parent_Id != None):
-                cur.execute("select * from contacts.organizations where id = '{}'".format(org_parent_Id))
-                org_parent = cur.fetchall()
-                parent_list.insert(0,org_parent[0][1])
-                org_parent_Id = org_parent[0][3]
-    return parent_list
-
-
-
 
 # convert row into dictionary containing table_name as key and payload as value
 def separate_table_into_json(view_row,table_list,view_column_list,json_data):
@@ -356,8 +333,7 @@ def separate_table_into_json(view_row,table_list,view_column_list,json_data):
             data[table_name][table_name_col] = json_struct[col]
     # print(data)
     return data
-    
-    
+
 
 
 # separates table name. i.e. courses_course_name -> [courses, course_name] 
@@ -372,11 +348,6 @@ def separate_table_name(table,json_data,table_schmea):
     
     return abs_table_name
     
-
-
-
-
-
 
 
 # returns a dictionary containing table_name as key and its primary-key as value

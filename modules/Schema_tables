@@ -1,7 +1,0 @@
-{
-    "contacts": ["organization_types","people", "organizations", "affiliations"],
-    "portal": ["courses","paths","lessons",
-    "activities","sections","forms","students",
-    "questions","submissions",
-    "answers","uploaded_file"]
-}
