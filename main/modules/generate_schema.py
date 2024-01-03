@@ -2,7 +2,6 @@
 # between tables in a schema.
 
 import sys
-sys.path.append("../modules")
 import json
 import connect_to_db
 import argparse
