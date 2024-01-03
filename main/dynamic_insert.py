@@ -5,7 +5,7 @@ data back into the database
 # add table essential columns to stack, then query table id from stack
 import sys
 
-sys.path.append("../modules")
+sys.path.append("modules")
 # sys.stdout.reconfigure(encoding='utf8')
 from modules import get_columns
 from modules import connect_to_db

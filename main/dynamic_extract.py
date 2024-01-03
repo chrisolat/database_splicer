@@ -5,8 +5,7 @@ from a view/table or sql query passed in from create_view.py
 """
 # add functionality to handle extraction of tables with no primary/unique keys
 import sys
-
-sys.path.append("../modules")
+sys.path.append('modules')
 from modules import get_columns
 from modules import connect_to_db
 from modules import schema as schema_module
@@ -25,11 +24,13 @@ PAYLOAD_CACHE = {}
 def extract_view_new_algorithm_with_seq_write(args):
     try:
         con = connect_to_db.connect()
+        if not con:
+            raise
         # cur = con.cursor() # correct way to initialize cursor
         cur = con.cursor("my_cursor")
         cur.itersize = 20000
     except:
-        print("could not connect to database. please ensure the credentials are correct")
+        print("Unable to connect to database server. Please enter valid credentials.")
         return
     
     with open(args.schemajson.name,"r") as file:

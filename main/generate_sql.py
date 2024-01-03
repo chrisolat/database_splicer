@@ -4,6 +4,7 @@ generate sql queries that can be used to extract data from tables
 """
 
 import sys
+sys.path.append('modules')
 from modules import get_columns
 from modules import connect_to_db
 from modules import schema as schema_module
