@@ -1,4 +1,4 @@
-# Database scripts
+# Database splicer
 These scripts allow a user to dynamically extract data from a database, and
 dynamically insert that data into a different database.
 
