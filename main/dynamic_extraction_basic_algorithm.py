@@ -24,17 +24,17 @@ def singleton(Table_row):
     if len(Table_row) > 0:
         # If there is more than one table in the list,
         # recall singleton and pass in the rest of the tables
-        # i.e [courses, paths, lessons] -> [paths, lessons]
+        # i.e [table1, table2, table3] -> [table2, table3]
         if len(Table_row) > 1:
             rest_data = singleton(rest(Table_row, 0))
             
-            # For [courses, paths, lessons],
-            # {courses: {paths: {lessons: {}}}} is returned
+            # For [table1, table2, table3],
+            # {table1: {table2: {table3: {}}}} is returned
             return {Table_row[0]:rest_data}
         
         # When there is only one table left,
         # return table name and empty dictionary
-        # i.e. -> {lessons:{}}
+        # i.e. -> {table3:{}}
         else:
             return {Table_row[0]:{}}
 

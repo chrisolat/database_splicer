@@ -2,7 +2,6 @@
 # between tables in a schema.
 
 import sys
-sys.path.append("../modules")
 import json
 import connect_to_db
 import argparse
@@ -237,10 +236,6 @@ def get_table_parent(table_name):
     result = []
     data = cur.fetchall()
     for row in data:
-        # if row[1] not in result:
-        #         result.append(row[1])
-
-        # temporary fix for answers partition
         abs_name = row[0]+"."+row[1]
         if len(result) > 0 and len(row[1]) < len(result[0]) and result[0].startswith(row[1]):
             while(len(result) > 0 and result[0].startswith(row[1])):
