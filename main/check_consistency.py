@@ -1,6 +1,6 @@
 """
-This script is used to check that data remains consistent when
-transfered to a different table.
+This script is used to check whether data remains consistent when
+transfered to another database.
 """
 
 import sys
