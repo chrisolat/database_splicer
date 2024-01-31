@@ -2,6 +2,7 @@
 # between tables in a schema.
 
 import sys
+sys.path.append("../modules")
 import json
 import connect_to_db
 import argparse
@@ -10,71 +11,81 @@ import schema as schema_module # renamed because "schema" may be a variable name
 from collections import defaultdict,OrderedDict
 cur = connect_to_db.connect().cursor()
 
-# Generates intermediate Schema
-def generate_schema(args):
-    
-    if not (args.infile and args.outfile):
-        print("Output or Input file not specified")
-        return
-    output = {}
-    # open schema file with raw schema and tables
-    with open(args.infile, 'r') as sch_tables:
-        Schema_tables = json.load(sch_tables)
-        table_set = set(get_table_list(Schema_tables))
-        table_parent = []
-        table_natural_key = ""
-        external_schema_detect = False
-        for schema in Schema_tables.keys():
-            for table in Schema_tables[schema]:
-                table_parent = get_table_parent(table)
-                table_natural_key = get_table_unique_key(table)
-                
-                # might need fix for external parent. might be better to implement in separate function
-                # more context: this check is to handle cases where a table has a parent/friend in a different schema 
-                if table_parent:
-                    for ptable in table_parent:
-                        # if parent is not found in tree
-                        if ptable not in table_set:
-                            # Get external table data and add it to the output
-                            data = {
-                                "natural_key": table_natural_key,
-                                "parent": table_parent[0],
-                                "friend": table_parent[1:]
-                            }
-                            output[table] = data
-                            parent_tables = get_missing_table_tree(ptable) 
-                            output = {**output, **parent_tables} 
-                            external_schema_detect = True            
-                else:
-                    table_parent.append("")
+SCHEMA_TABLES = {}
+INTERMEDIATE_SCHEMA = {}
+DETAILED_SCHEMA = {}
 
-                # External Parent table data is already populated. Skip iteration
-                if external_schema_detect:
-                    external_schema_detect = False
-                    continue
-                # If more than one parent is found,
-                # a field "friend" is used to contain
-                # the friend table
-                if len(table_parent) > 1:
-                    for ptable in table_parent:
-                        # if parent not found in tree/schema, get the external table
-                        if ptable not in table_set:
-                            parent_tables = get_missing_table_tree(ptable) 
-                            output = {**output, **parent_tables} 
-                    data = {
-                        "natural_key": table_natural_key,
-                        "parent": table_parent[0],
-                        "friend": table_parent[1:]
-                    }
-                else:
-                    data = {
-                        "natural_key": table_natural_key,
-                        "parent": table_parent[0]
-                    }
-                output[table] = data
-        print("Parent and Friend tables were arbitrarily assigned")
+# Generates intermediate Schema
+def generate_schema(args,schema_tables):
+    
+    # if not (args.infile and args.outfile):
+    #     print("Output or Input file not specified")
+    #     return
+    output = {}
+    Schema_tables = {}
+    # open schema file with raw schema and tables
+    if args.infile:
+        with open(args.infile, 'r') as sch_tables:
+            Schema_tables = json.load(sch_tables)
+    else:
+        Schema_tables = schema_tables
+    table_set = set(get_table_list(Schema_tables))
+    table_parent = []
+    table_natural_key = ""
+    external_schema_detect = False
+    for schema in Schema_tables.keys():
+        for table in Schema_tables[schema]:
+            table_parent = get_table_parent(table)
+            table_natural_key = get_table_unique_key(table)
+            
+            # might need fix for external parent. might be better to implement in separate function
+            # more context: this check is to handle cases where a table has a parent/friend in a different schema 
+            if table_parent:
+                for ptable in table_parent:
+                    # if parent is not found in tree
+                    if ptable not in table_set:
+                        # Get external table data and add it to the output
+                        data = {
+                            "natural_key": table_natural_key,
+                            "parent": table_parent[0],
+                            "friend": table_parent[1:]
+                        }
+                        output[table] = data
+                        parent_tables = get_missing_table_tree(ptable) 
+                        output = {**output, **parent_tables} 
+                        external_schema_detect = True            
+            else:
+                table_parent.append("")
+
+            # External Parent table data is already populated. Skip iteration
+            if external_schema_detect:
+                external_schema_detect = False
+                continue
+            # If more than one parent is found,
+            # a field "friend" is used to contain
+            # the friend table
+            if len(table_parent) > 1:
+                for ptable in table_parent:
+                    # if parent not found in tree/schema, get the external table
+                    if ptable not in table_set:
+                        parent_tables = get_missing_table_tree(ptable) 
+                        output = {**output, **parent_tables} 
+                data = {
+                    "natural_key": table_natural_key,
+                    "parent": table_parent[0],
+                    "friend": table_parent[1:]
+                }
+            else:
+                data = {
+                    "natural_key": table_natural_key,
+                    "parent": table_parent[0]
+                }
+            output[table] = data
+    print("Parent and Friend tables were arbitrarily assigned")
+    if args.outfile:
         with open(args.outfile, 'w') as output_file:
             json.dump(output, output_file, indent=2)
+    return output
             
 
 # function to get missing tables that may be in separate schema
@@ -110,50 +121,55 @@ def get_missing_table_tree(table):
 
 
 # code to generate detailed schema json
-def generate_detailed_schema(args):
-    if not (args.infile and args.outfile):
-        print("Output or Input file not specified")
+def generate_detailed_schema(args,intermediate_schema):
+    if not args.outfile:
+        print("Output not specified")
         return
     output = {}
-    with open(args.infile, 'r') as file:
-        schema_data = json.load(file)
-        for table in schema_data:
-            table_parent = [schema_data[table]["parent"]]
-            table_friend = []
-            if "friend" in schema_data[table]:
-                table_friend = schema_data[table]["friend"]
-            if table_parent:
-                table_parent = table_parent[:1]
-            uniqueKey = []
-            if schema_data[table]['natural_key']:
-                uniqueKey = [schema_data[table]['natural_key']]
-            else:
-                table_pkey = get_table_primary_key(table)
-                if "id" not in table_pkey:
-                    uniqueKey = [get_table_primary_key(table)]
-            
-            # A more detailed information about tables is retrieved and stored.
-            data = {
-                "PRIMARY-KEY": [get_table_primary_key(table)],
-                "FOREIGN-KEY": get_foreign_key(table),
-                "UNIQUE-KEY": uniqueKey,
-                "NOT-NEEDED": get_not_needed(table),
-                "PARENT-TABLE": table_parent,
-                "FRIEND-TABLE": table_friend,
-                "IDENTIFIER": get_identifiers(table,schema_data,uniqueKey)
-            }
-            output[table] = data
-        Trees = generate_trees(schema_data)
-        output["Trees"] = Trees
+    schema_data = {}
+    if args.infile:
+        with open(args.infile, 'r') as file:
+            schema_data = json.load(file)
+    else:
+        schema_data = intermediate_schema
+    for table in schema_data:
+        table_parent = [schema_data[table]["parent"]]
+        table_friend = []
+        if "friend" in schema_data[table]:
+            table_friend = schema_data[table]["friend"]
+        if table_parent:
+            table_parent = table_parent[:1]
+        uniqueKey = []
+        if schema_data[table]['natural_key']:
+            uniqueKey = [schema_data[table]['natural_key']]
+        else:
+            table_pkey = get_table_primary_key(table)
+            if "id" not in table_pkey:
+                uniqueKey = [get_table_primary_key(table)]
+        
+        # A more detailed information about tables is retrieved and stored.
+        data = {
+            "PRIMARY-KEY": [get_table_primary_key(table)],
+            "FOREIGN-KEY": get_foreign_key(table),
+            "UNIQUE-KEY": uniqueKey,
+            "NOT-NEEDED": get_not_needed(table),
+            "PARENT-TABLE": table_parent,
+            "FRIEND-TABLE": table_friend,
+            "IDENTIFIER": get_identifiers(table,schema_data,uniqueKey)
+        }
+        output[table] = data
+    Trees = generate_trees(schema_data)
+    output["Trees"] = Trees
     with open(args.outfile, 'w') as output_file:
         json.dump(output, output_file, indent=2)
+    return output
 
 
 # generate simple data on the relationship between tables in a schema
 def generate_schema_tables(args):
-    if not (args.outfile):
-        print("Output file not specified")
-        return
+    # if not (args.outfile):
+    #     print("Output file not specified")
+    #     return
     schema_tables = defaultdict(list)
 
     # if schema name is not specified, extract all schemas
@@ -175,6 +191,7 @@ def generate_schema_tables(args):
             SELECT *
             FROM information_schema.tables
             where table_schema = '{}'
+            and table_type = 'BASE TABLE'
             """.format(schema)
         )
         
@@ -184,9 +201,11 @@ def generate_schema_tables(args):
             continue
         for row in result:
             schema_tables[schema].append(row[1]+"."+row[2])
-
-    with open(args.outfile, 'w') as output_file:
-        json.dump(schema_tables, output_file, indent=2)
+    
+    if args.outfile:
+        with open(args.outfile, 'w') as output_file:
+            json.dump(schema_tables, output_file, indent=2)
+    return schema_tables
 
     
 
@@ -236,6 +255,10 @@ def get_table_parent(table_name):
     result = []
     data = cur.fetchall()
     for row in data:
+        # if row[1] not in result:
+        #         result.append(row[1])
+
+        # temporary fix for answers partition
         abs_name = row[0]+"."+row[1]
         if len(result) > 0 and len(row[1]) < len(result[0]) and result[0].startswith(row[1]):
             while(len(result) > 0 and result[0].startswith(row[1])):
@@ -482,24 +505,52 @@ def extend_schema(table):
     
     return new_schema_data
 
+
+
+def write_preset_data_to_file(args,preset_data,local_json_storage):
+    output_file = {}
+    if args.outfile:
+        with open(args.outfile, 'r') as file:
+            output_file = json.load(file)
+    else:
+        output_file = local_json_storage
+    for table in output_file:
+        if table in preset_data:
+            output_file[table] = preset_data[table]
+    if args.outfile:
+        with open(args.outfile,'w') as file:
+            json.dump(output_file, file, indent=2)
+
+
+
+def write_custom_preset(args,local_json_storage):
+    if not args.preset_file:
+        return
+    preset_data = {}
+    with open(args.preset_file) as preset_file:
+        preset_data = json.load(preset_file)
+    write_preset_data_to_file(args,preset_data,local_json_storage)
+    
+
 # This function runs all procedures; generating all schema files
 def generate_all_schemas(args):
 
     outfile_temp = args.outfile
-    args.outfile = "schema_tables.json"
-    generate_schema_tables(args)
+    args.outfile = ""
+    SCHEMA_TABLES = generate_schema_tables(args)
+    args.infile = ""
+    args.outfile = ""
+    INTERMEDIATE_SCHEMA = generate_schema(args,SCHEMA_TABLES)
+    # fix_intermediate(args,INTERMEDIATE_SCHEMA)
 
-    args.infile = "schema_tables.json"
-    args.outfile = "intermediate_schema.json"
-    generate_schema(args)
-    #fix_intermediate(args)
-
-    args.infile = "intermediate_schema.json"
+    args.infile = ""
     args.outfile = "detailed.json"
     if outfile_temp:
         args.outfile = outfile_temp
-    generate_detailed_schema(args)
-    #fix_detailed(args)
+    DETAILED_SCHEMA = generate_detailed_schema(args,INTERMEDIATE_SCHEMA)
+    # fix_detailed(args,DETAILED_SCHEMA)
+
+    write_custom_preset(args,DETAILED_SCHEMA)
 
     print("Detailed schema file name: ", args.outfile)
 
@@ -559,13 +610,14 @@ def start():
     parser.add_argument('--analyze_trees', default=False, action='store_true', help='generate sorted tree json')
     parser.add_argument('--schemas', nargs='*', default=[], help="specify schema to be included in schema tables")
     parser.add_argument('--generate_all', default=False, action="store_true", help="generate all schema files")
+    parser.add_argument('--preset_file', default="", type=str, help="generate all schema files")
     args = parser.parse_args()
     if args.generate_all:
         generate_all_schemas(args)
     elif args.generate_detailed_schema:
-        generate_detailed_schema(args)
+        generate_detailed_schema(args,INTERMEDIATE_SCHEMA)
     elif args.generate_schema:
-        generate_schema(args)
+        generate_schema(args,SCHEMA_TABLES)
     elif args.generate_schema_tables:
         generate_schema_tables(args)
     elif args.analyze_trees:

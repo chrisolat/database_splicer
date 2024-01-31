@@ -1,10 +1,4 @@
-"""
-This module is used to 
-generate sql queries that can be used to extract data from tables
-"""
-
 import sys
-sys.path.append('modules')
 from modules import get_columns
 from modules import connect_to_db
 from modules import schema as schema_module
@@ -29,32 +23,29 @@ def generate_sql(args):
     if args.tables:
         for table in args.tables:
             if len(table.split(".")) < 2:
-                print("Please enter table name in the format: <schema>.<table>.\ni.e courses should be portal.courses.")
+                print("Please enter table name in the format: <schema>.<table> \ni.e courses should be portal.courses.")
                 return
         table_input = args.tables
     column_and_data_list = []
-    if args.columns:
-        for entry in args.columns:
-            column_and_data = entry.split("=")
-            column_and_data_list.append(column_and_data)
-
+    if args.where:
+        column_and_data_list = parse_where_query(args)
     
     Trees = json_data["Trees"]
     seen_tables = set()
     result_query = []
-
+    
     if table_input:
         table_input = add_friend_table(table_input, json_data)
     use_column_list = False
     if table_input:
         for table in table_input:
+            table_tree = get_table_tree(table, json_data)
             # boolean variable to decide if column_data_list should be used when generating sql for current table.
             # this is needed because this function may generate sql for unrelated tables
-            use_column_list = column_exists_in_table(table,column_and_data_list)
-            if use_column_list:
-                for i in range(len(column_and_data_list)):
-                    column_and_data_list[i][0] = table.split(".")[1] +"."+ column_and_data_list[i][0]
-            table_tree = get_table_tree(table, json_data)
+            use_column_list = column_exists_in_table(table,column_and_data_list,table_tree)
+            if args.where and not use_column_list:
+                print("Specified columns in where clause not found in any tables!")
+                sys.exit(0)
             tree_schema = schema_module.get_table_schema_name(table)
             if args.schema:
                 tree_schema = args.schema
@@ -79,18 +70,41 @@ def generate_sql(args):
         
     with open(args.outfile.name, 'w') as file:
         print(len(result_query), "query(s)")
-        if args.columns and not use_column_list:
-            print("Warning: specified columns were not found in any tables!")
-        file.write(str(result_query))
+        if args.where and not use_column_list:
+            print("Specified columns in where clause not found in any tables!")
+        write_query_to_file(result_query, file)
     
 
+def write_query_to_file(result_query, file):
+    for query in result_query:
+        query_split = query.split('\n')
+        for statement in query_split:
+            if statement == query_split[-1]:
+                file.write(statement.strip().replace(";","")+"\n")
+            else:
+                file.write(statement.strip()+"\n")
+        file.write(";"+"\n")
+
+
+def parse_where_query(args):
+    result = []
+    and_split = args.where.split("and")
+    for statement in and_split:
+        column_and_data = statement.replace(" ","").split("=")
+        result.append(column_and_data)
+    return result
+
+
 # check to see if column really exists in table   
-def column_exists_in_table(table_name,column_and_data_list):
+def column_exists_in_table(table_name,column_and_data_list,table_tree):
     if not column_and_data_list:
         return False
-    table_split = table_name.split(".")
     columns = [x[0] for x in column_and_data_list]
-    table_columns = get_columns.get_columns_list(table_split[0],table_split[1])
+    table_columns = []
+    for table_name in table_tree:
+        table_split = table_name.split(".")
+        column_list = get_columns.get_columns_list(table_split[0],table_split[1])
+        table_columns.extend([table_split[1]+"."+col for col in column_list])
     table_columns = set(table_columns)
     for cols in columns:
         if cols not in table_columns:
@@ -205,9 +219,9 @@ def build_query(table_list,DB_SCHEMA,json_data,column_and_data_list,use_columns_
     for table in table_json.keys(): # Iterate through tables
         for cols in table_json[table]: # Iterate through columns of table in dictionary
             # this is to make column names unique 
-            # i.e. table -> table_name, column -> table_column
-            # identifier -> table_name.table_column
-            # unique name -> table_name_table_column
+            # i.e. table -> courses, column -> course_name
+            # identifier -> courses.course_name
+            # unique name -> courses_course_name
             table_name = table.split(".")[1] + "." + cols
             new_table_name = table.split(".")[1] + "_" + cols
             sql_query += "\n {} AS {},".format(table_name,new_table_name)
@@ -218,15 +232,22 @@ def build_query(table_list,DB_SCHEMA,json_data,column_and_data_list,use_columns_
                 view_pkeys.append(new_table_name)
     
     #  Sql query end
+    #sql_query = sql_query[:-2]
     query_len = len(sql_query)-1
     while(sql_query[query_len] == " "):
         query_len -= 1
     if sql_query[query_len] == ",":
         sql_query = sql_query[:-1]
-    sql_query += "\n from {};".format(table_list[0])
+    sql_query += "\n from {}".format(table_list[0])
+    if len(table_list) == 1 and use_columns_list:
+        sql_query += "\nwhere "
+        for column,data in column_and_data_list:
+            sql_query += "{} = {} and ".format(column,data)
+        sql_query = sql_query[:-5]
+    sql_query += ";"
     
     # if more than one table is passed in
-    if len(table_list) > 1:
+    if len(table_list) > 1 and table_list[1] != "organizations": # TODO - remove hardcoding
         sql_query = sql_query[:-1]
         # Iterate through the rest of the tables
         for table in range(1,len(table_list)):
@@ -256,11 +277,11 @@ def build_query(table_list,DB_SCHEMA,json_data,column_and_data_list,use_columns_
             # sql footer to join multiple tables together
             sql_query += "\n right join {} on {}.{} = {}.{}".format(table_list[table],
             parent_table.split(".")[1],parent_table_pkey,cur_table.split(".")[1],cur_table_fkey)
-        
+
         if use_columns_list:
             sql_query += "\nwhere "
             for column,data in column_and_data_list:
-                sql_query += "{} = '{}' and ".format(column,data)
+                sql_query += "{} = {} and ".format(column,data)
             sql_query = sql_query[:-4]
 
         if view_pkeys:
@@ -284,7 +305,7 @@ def build_query(table_list,DB_SCHEMA,json_data,column_and_data_list,use_columns_
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="extract_questions.py")
     parser.add_argument("--tables",nargs='+',help="pass in leaf tables to extract", required=True)
-    parser.add_argument("--columns",nargs='+',help="specify columns to extract")
+    parser.add_argument("--where",type=str,default="",help="specify rows to extract")
     parser.add_argument("--extract_ancestor_trees",default=False,action="store_true",help="extract all ancestor trees")
     parser.add_argument("--extract_full_tree",default=False,action="store_true",help="extract full tree")
     parser.add_argument('--outfile',nargs='?',type=argparse.FileType('w'),required=True)
