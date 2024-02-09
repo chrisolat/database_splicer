@@ -21,8 +21,9 @@ OPTIONS
         Note: A single table name can be entered. 
 
         If multiple tables are entered, they must be related and also must
-        be in the same schema. i.e entering "lessons" and "paths" will work
-        fine, but entering "lessons" and "organizations" will return an error.
+        be in the same schema. i.e Assuming schemaA has tables "tableA" and "tableB"
+        entering "tableA" and "tableB" will work fine,
+        but entering "tableA" and "tableC" will return an error.
 
 --schemajson <file name>:
         Specify the name of the file containing detailed schema information.
